@@ -13,7 +13,7 @@ include_directories(inc)
 
 link_directories(lib)
 
-find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Concurrent REQUIRED)
 
 add_executable(${PROJECT_NAME}
   main.cpp
@@ -22,4 +22,4 @@ add_executable(${PROJECT_NAME}
   main_window.ui
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Widgets IMCnet IMC_Pkg)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Widgets Qt5::Concurrent IMCnet IMC_Pkg)

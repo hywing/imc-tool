@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QMessageBox>
 #include <QDebug>
+#include <QtConcurrent>
 
 ulong g_errCnt = 0;
 void IsError(IMC_STATUS status)
@@ -30,6 +31,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_netid(0)
     , m_imcid(0)
     , m_pos(0)
+    , m_first(-540000)
+    , m_velocity(4500000)
 {
     ui->setupUi(this);
 
@@ -65,6 +68,10 @@ void MainWindow::init()
                 max = w;
         }
     }
+    else {
+        qDebug() << "Find Net Card Error : " << Status;
+        QMessageBox::information(this, "error", QString("Find Net Card Error : %1").arg(Status));
+    }
 
     if(ui->netid->count() > 0) {
         ui->netid->setCurrentIndex(0);
@@ -82,12 +89,15 @@ void MainWindow::init()
         m_curpos[i] = 0;
     }
 
-    connect(ui->connect, &QPushButton::clicked, this, [=]() {
-        if(openIMC() && ui->connect->text() == "Connect") {
-            ui->connect->setText("Disconnect");
+    // axis
+    this->m_axis = ui->axis->currentIndex();
+
+    connect(ui->connectMotor, &QPushButton::clicked, this, [=]() {
+        if(openIMC() && ui->connectMotor->text() == "Connect Motor") {
+            setConnectMotorFlag(true);
         }
         else {
-            ui->connect->setText("Connect");
+            setConnectMotorFlag(false);
         }
     });
 
@@ -105,6 +115,12 @@ void MainWindow::init()
 
     connect(ui->pos, &QLineEdit::textChanged, this, [=](const QString &text) {
         this->m_pos = text.toInt();
+    });
+
+    this->m_velocity = ui->velocity->text().toInt();
+    connect(ui->velocity, &QLineEdit::textChanged, this, [=](const QString &text) {
+        this->m_velocity = text.toInt();
+        IMC_SetParam32(m_Handle, mcsmaxvelLoc, this->m_velocity, m_axis, FIFO_SEL::SEL_IFIFO);
     });
 
     connect(ui->run, &QPushButton::clicked, this, [=]() {
@@ -138,6 +154,30 @@ void MainWindow::init()
         IMC_SetParam32(m_Handle, homeposLoc, 0, m_axis, SEL_IFIFO);
         IMC_SetParam16(m_Handle, sethomeLoc, -1, m_axis, SEL_IFIFO);
     });
+
+    this->m_first = ui->first->text().toInt();
+    connect(ui->first, &QLineEdit::textChanged, this, [=](const QString &text) {
+        this->m_first = text.toInt();
+    });
+
+    connect(ui->setChannels, &QPushButton::clicked, this, [=]() {
+        int gap = ui->gap->text().toInt();
+        this->m_angles[0] = this->m_first;
+        this->m_angles[1] = this->m_first - gap;
+        this->m_angles[2] = this->m_first - gap * 2;
+        this->m_angles[3] = this->m_first - gap * 3;
+        this->m_angles[4] = this->m_first - gap * 4;
+
+        QMessageBox::information(this, "info", QString("Angles : [%1 %2 %3 %4 %5], click OK to continue.").arg(m_angles[0]).arg(m_angles[1]).arg(m_angles[2]).arg(m_angles[3]).arg(m_angles[4]));
+
+        QFuture<void> future = QtConcurrent::run(this, &MainWindow::dispalyAngles);
+    });
+
+    connect(ui->zero, &QPushButton::clicked, this, [=]() {
+        MoveAbs(0, m_axis);
+        WaitMoved(m_axis);
+    });
+
 
     for (int axis = 0; axis < m_Naxis; axis++)
     {
@@ -325,5 +365,34 @@ void MainWindow::timerEvent(QTimerEvent *event)
             }
         }
     }
+}
+
+void MainWindow::setConnectMotorFlag(bool flag)
+{
+    if(flag) {
+        ui->connectMotorLabel->setStyleSheet("QLabel#connectMotorLabel{background-color:rgb(0, 255, 0);border-radius:10px;border:3px groove gray;border-style:outset;}");
+        ui->connectMotor->setText("Disconnect");
+    }
+    else {
+        ui->connectMotorLabel->setStyleSheet("QLabel#connectMotorLabel{background-color:rgb(195,195,195);border-radius:10px;border:3px groove gray;border-style:outset;}");
+        ui->connectMotor->setText("Connect Motor");
+    }
+}
+
+void MainWindow::dispalyAngles()
+{
+    qDebug() << "---------------------------- begin ----------------------------";
+    int sleep_array[6] = {15, 10, 10, 10, 10, 15};
+    for(int i = 0; i < 5; i++) {
+        ui->channel->setText(QString::number(i));
+        MoveAbs(m_angles[i], m_axis);
+        WaitMoved(m_axis);
+        QThread::sleep(sleep_array[i]);
+    }
+
+    MoveAbs(0, m_axis);
+    WaitMoved(m_axis);
+    QThread::sleep(sleep_array[5]);
+    qDebug() << "---------------------------- end ----------------------------";
 }
 

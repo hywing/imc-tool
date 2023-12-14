@@ -48,6 +48,10 @@ protected:
 
     void timerEvent(QTimerEvent* event) override;
 
+    void setConnectMotorFlag(bool flag);
+
+    void dispalyAngles();
+
 private:
     Ui::MainWindow *ui;
 
@@ -71,5 +75,9 @@ private:
     WR_MUL_DES m_errorDes[m_Naxis];
     WR_MUL_DES m_ginDes[2];
     WR_MUL_DES m_goutDes[2];
+
+    int m_angles[5];
+    int m_first;
+    int m_velocity;
 };
 #endif // MAINWINDOW_H
