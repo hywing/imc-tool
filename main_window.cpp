@@ -203,10 +203,10 @@ void MainWindow::initAxis(int axis)
 {
     IMC_STATUS status;
     if(m_Handle==NULL) return;
-    status = IMC_SetParam16(m_Handle, clearLoc, -1, axis, FIFO_SEL::SEL_IFIFO);
+    //status = IMC_SetParam16(m_Handle, clearLoc, -1, axis, FIFO_SEL::SEL_IFIFO);
     status = IMC_SetParam32(m_Handle, accellimLoc, 50000, axis, FIFO_SEL::SEL_IFIFO);
     status = IMC_SetParam32(m_Handle, vellimLoc, 5000000, axis, FIFO_SEL::SEL_IFIFO);
-    status = IMC_SetParam32(m_Handle, mcsmaxvelLoc, 1000000, axis, FIFO_SEL::SEL_IFIFO);
+    status = IMC_SetParam32(m_Handle, mcsmaxvelLoc, this->m_velocity, axis, FIFO_SEL::SEL_IFIFO);
     status = IMC_SetParam32(m_Handle, mcsaccelLoc, 1000, axis, FIFO_SEL::SEL_IFIFO);
     status = IMC_SetParam32(m_Handle, mcsdecelLoc, 1000, axis, FIFO_SEL::SEL_IFIFO);
 
